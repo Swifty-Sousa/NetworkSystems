@@ -57,6 +57,17 @@ void *thread(void *vargp)
     return NULL;
 }
 
+int get_format(char * buf, char * ext)
+{
+    
+}
+
+
+
+
+
+
+
 /*
  * echo - read and echo text lines until client closes connection
  */
