@@ -57,9 +57,44 @@ void *thread(void *vargp)
     return NULL;
 }
 
+void error(int connfd)
+{
+    char buf[MAXLINE];
+    char emsg[]= "HTTP/1.1 500 Internal Server Error\r\nContent-Type:text/plain\r\nContent-Length:0\r\n\r\n";
+    strcpy(buf, emsg);
+    writt(connfd, buf, strlen(emsg));
+}
+
 int get_format(char * buf, char * ext)
 {
-    
+    if(!strcmp(ext, "txt"))
+    {
+        strcpy(buf, "text/plain");`
+    }
+    else if(!strcmp(ext, "html"))
+    {
+        strcpy(buf, "text/html");
+    }
+    else if(!strcmp(ext, "gif"))
+    {
+        strcpy(buf, "image/gif");
+    }
+    else if(!strcmp(ext, "png"))
+    {
+        strcpy(buf, "image/png");
+    }
+    else if(!strcmp(ext, "jpg"))
+    {
+        strcpy(buf, "image/jpg");
+    }
+    else if(!strcmp(ext, "css"))
+    {
+        strcpy(buf, "text/css");
+    }
+    else if(!strcmp(ext, "js"))
+    {
+        strcpy(buf, "appolication/javascript");
+    }
 }
 
 
