@@ -1,5 +1,5 @@
 make:
 	gcc -pthread httpechosrv.c
 run:
-	./a.out 55555
+	./a.out 8888
 	

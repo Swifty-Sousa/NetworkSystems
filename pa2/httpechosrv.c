@@ -195,6 +195,7 @@ void echo(int connfd)
     char buf[MAXLINE];
     printf(buf);
     n = read(connfd, buf, MAXLINE);
+    printf("server got request: %s\n", buf);
     char *request = strtok(buf, " ");//request type
     char *fname= strtok(buf, " "); //filename
     char *version= strtok(buf, "\r");
