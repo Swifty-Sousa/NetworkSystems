@@ -36,12 +36,15 @@ int main(int argc, char **argv)
     //jump to bottom and create a listning port
     listenfd = open_listenfd(port);
     
-    
+    printf("listening port open\n");
     
     while (1)
     {
+        printf("starting loop\n");
         connfdp = malloc(sizeof(int));
+        printf("malloc created\n");
         *connfdp = accept(listenfd, (struct sockaddr *)&clientaddr, &clientlen);
+        printf("creating thread\n");
         pthread_create(&tid, NULL, thread, connfdp);
     }
 }
@@ -62,14 +65,18 @@ void error(int connfd)
     char buf[MAXLINE];
     char emsg[]= "HTTP/1.1 500 Internal Server Error\r\nContent-Type:text/plain\r\nContent-Length:0\r\n\r\n";
     strcpy(buf, emsg);
-    writt(connfd, buf, strlen(emsg));
+    write(connfd, buf, strlen(emsg));
 }
-
-int get_format(char * buf, char * ext)
+/*
+    get_content_type:
+        - finds the content type of the request and puts
+        - puts the corresponding type in the buffer
+*/
+int get_content_typee(char * buf, char * ext)
 {
     if(!strcmp(ext, "txt"))
     {
-        strcpy(buf, "text/plain");`
+        strcpy(buf, "text/plain");
     }
     else if(!strcmp(ext, "html"))
     {
@@ -95,10 +102,86 @@ int get_format(char * buf, char * ext)
     {
         strcpy(buf, "appolication/javascript");
     }
+    else
+    {
+        return -1;
+    }
+    return 0;
+    
 }
 
 
+void get_request(int connfd, char *fname, char * version)
+{
+    FILE *f;
+    ssize_t fsize;
+    char content_type[MAXBUF];
+    char path[MAXBUF];
+    char file_extension [MAXBUF];
 
+    if(!strcmp(fname, "/"))
+    {
+        //grab the default home page
+        printf("Displaying Default Homepage");
+        f= fopen("www/index.html", "rb");
+        // "rb" option is for for reading binary files, is used for all non-text files 
+        fseek(f, 0L, SEEK_END);
+        //calculating file size
+        fsize= ftell(f);
+        rewind(f);
+        printf("Requested file is %d\n", (int)fsize);
+        strcpy(file_extension, "html");
+    }
+
+    else
+    {
+        //find the file specified
+        strcat(path, "www");
+        printf("path is: %s", path);
+        printf("fmane is: %s", fname);
+        strcat(path,fname);
+        f= fopen(path, "rb");
+        if(f==NULL)
+        {
+            //file could not be open
+            printf("file %s could not be opened in get_reqest fuction", fname);
+            error(connfd);
+        }
+        //calculate the size of file and toss it in header
+        fseek(f, 0L, SEEK_END);
+        fsize= ftell(f);
+        rewind(f);
+        printf("Filesize: %d\n", (int)fsize);
+        
+        //extension starts after the '.' character, so find refrence to that point
+        char *front = strchr(fname, '.');
+        if(!front)
+        {
+            printf("file %s could not opened in get_request fuction: BAD EXTENSION\n");
+            error(connfd);
+            return;
+        }
+        strncpy(file_extension, front+1, 4);
+        }
+        printf("File extension: %s\n", file_extension);
+
+        if(get_content_typee(content_type, file_extension)==-1)
+        {
+            printf("this extension %s is not supported\n", file_extension);
+            error(connfd);
+            return;
+        }
+        printf("content type: %s\n", content_type);
+        char  contents[fsize];
+        fread(contents, 1, fsize, f);
+        char header[MAXBUF];
+        sprintf(header, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%ld\r\n\r\n", version, content_type, fsize);
+        char response[fsize +strlen(header)];
+        strcpy(response, header); //this fails with non-text files so we add the next line to take care of that.
+        memcpy(response +strlen(header), contents, fsize);
+        printf("sending server response\n");
+        write(connfd, response, fsize+strlen(header));
+}
 
 
 
@@ -110,13 +193,35 @@ void echo(int connfd)
 {
     size_t n;
     char buf[MAXLINE];
-    char httpmsg[] = "HTTP/1.1 200 Document Follows\r\nContent-Type:text/html\r\nContent-Length:32\r\n\r\n<html><h1>Hello CSCI4273 Course!</h1>";
-
+    printf(buf);
     n = read(connfd, buf, MAXLINE);
-    printf("server received the following request:\n%s\n", buf);
-    strcpy(buf, httpmsg);
-    printf("server returning a http message with the following content.\n%s\n", buf);
-    write(connfd, buf, strlen(httpmsg));
+    char *request = strtok(buf, " ");//request type
+    char *fname= strtok(buf, " "); //filename
+    char *version= strtok(buf, "\r");
+    printf("Filename: %s, Version: %s, Request type: %s\n", fname, version, request);
+
+
+    if(fname ==NULL || version==NULL)
+    {
+        printf("NULL filename of version\n");
+        error(connfd);
+        return;
+    }
+    if(!strcmp(version, "HTTP/1.1") || !strcmp(version, "HTTP/1.0"))
+    {
+        // do the thing
+        if(!strcmp(request, "GET"))
+        {
+            get_request(connfd,fname, version);
+        }
+    }
+    else
+    {
+        printf("Invalid request in echo function\n");
+        error(connfd);
+
+    }
+    
 }
 
 /* 
@@ -125,6 +230,7 @@ void echo(int connfd)
  */
 int open_listenfd(int port)
 {
+    printf("beginning open\n");
     int listenfd, optval = 1;
     struct sockaddr_in serveraddr;
 
@@ -143,6 +249,7 @@ int open_listenfd(int port)
     serveraddr.sin_family = AF_INET;
     serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
     serveraddr.sin_port = htons((unsigned short)port);
+    printf("terminating open\n");
     if (bind(listenfd, (struct sockaddr *)&serveraddr, sizeof(serveraddr)) < 0)
         return -1;
 
