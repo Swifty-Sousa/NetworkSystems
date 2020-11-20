@@ -40,11 +40,11 @@ int main(int argc, char **argv)
     
     while (1)
     {
-        printf("starting loop\n");
+        //printf("starting loop\n");
         connfdp = malloc(sizeof(int));
-        printf("malloc created\n");
+        //printf("malloc created\n");
         *connfdp = accept(listenfd, (struct sockaddr *)&clientaddr, &clientlen);
-        printf("creating thread\n");
+        //printf("creating thread\n");
         pthread_create(&tid, NULL, thread, connfdp);
     }
 }
@@ -195,10 +195,10 @@ void echo(int connfd)
     char buf[MAXLINE];
     printf(buf);
     n = read(connfd, buf, MAXLINE);
-    printf("server got request: %s\n", buf);
+    printf("server got request: \n\n%s\n", buf);
     char *request = strtok(buf, " ");//request type
-    char *fname= strtok(buf, " "); //filename
-    char *version= strtok(buf, "\r");
+    char *fname= strtok(NULL, " "); //filename
+    char *version= strtok(NULL, "\r");
     printf("Filename: %s, Version: %s, Request type: %s\n", fname, version, request);
 
 
