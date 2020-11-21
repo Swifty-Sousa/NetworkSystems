@@ -239,10 +239,7 @@ int open_listenfd(int port)
     if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         return -1;
 
-    /* Eliminates "Address already in use" error from bind. */
-    if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR,
-                   (const void *)&optval, sizeof(int)) < 0)
-        return -1;
+    /* Eliminates "Address already in use" error from bind. */http://netsys.cs.colorado.edu/graphics/html.gif HTTP/1.0;
 
     /* listenfd will be an endpoint for all requests to port
        on any IP address for this host */
