@@ -19,10 +19,6 @@
 
 #define MAXLINE 8192 /* max text line length */
 #define MAXBUF 8192	 /* max I/O buffer size */
-#define LISTENQ 1024 /* second argument to listen() */
-
-//function delcalarations
-int open_listenfd(int port);
 
 void proxy(int connfd);
 
@@ -33,6 +29,7 @@ void send_error(int connfd, char *msg);
 int server_connect(char *hostname, int connfd);
 
 bool blacklisted(char *hostname, char *ipaddr);
+int open_listenfd(int port);
 
 //function
 int main(int argc, char **argv) // the main, duhh
@@ -124,15 +121,20 @@ void proxy(int connfd)
 	printf("proxy got request: \n\n%s\n", buf);
 	//comes in as GET http://hostname/uri HTTP/1.0
 	char *request = strtok(buf, " ");  //Must be "GET"
+	printf("pulled GET\n");
 	char *url = strtok(NULL, " ") + 7; //removes http:// and collects the url
+	printf("removed garbage and got URL: %s\n", url);
 	//char *holder= strtok(NULL," "); //collects uri and adds / removed above
 	//char *uri= strstr(slash, holder);
 	//char *uri= sprintf(uri,"%s%S", "/",holder);
 	char *version = strtok(NULL, "\r"); //collects version.
-
+	printf("got version\n");
+	printf("url is: %s\n", url);
 	is_slash = strchr(url, '/');
+	printf("YEet");
 	if (is_slash != NULL)
 	{
+		printf("we got into if satement");
 		hostname = strtok(url, "/");
 		holder = strtok(NULL, " ");
 		strcat(uri, holder);
@@ -206,24 +208,26 @@ void proxy(int connfd)
 	}
 	printf("attempting to receive from server\n");
 	char server_buffer[MAXBUF];
-	while ((flag = read(servfd, server_buffer, MAXBUF)) > 0)
+	bzero(server_buffer, MAXBUF);
+while ((flag = read(servfd, server_buffer, MAXBUF))>0)
 	{
 		//printf("text\n");
 
+		flag= write(connfd,server_buffer,strlen(server_buffer));
 		if (flag < 0)
 		{
-			printf("could not recive from server\n");
-			send_error(connfd, "could not recive from server");
+			printf("could not send data to client\n");
+			send_error(connfd, "could not forward traffic to client");
 		}
+		printf("data recived fom server: %s\n\n", server_buffer);
+		bzero(server_buffer,MAXBUF);
 	}
 	//printf("did we make it to here?\n");
 	printf("\n\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~Server Reply~~~~~~~~~~~~~~~~~~\n\n\n");
-	printf("data recived fom server: %s\n\n", server_buffer);
 	//printf("Data recived from server\n");
 	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~forwarding to client~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-	flag= write(connfd,server_buffer,strlen(server_buffer));
 	if(flag<0)
 	{
 		perror("Error");
@@ -299,7 +303,7 @@ int open_listenfd(int port)
 		return -1;
 
 	/* Make it a listening socket ready to accept connection requests */
-	if (listen(listenfd, LISTENQ) < 0)
+	if (listen(listenfd, 1024) < 0)
 		return -1;
 	return listenfd;
 }
