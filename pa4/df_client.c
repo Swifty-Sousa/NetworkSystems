@@ -41,8 +41,8 @@ int socket_init(char * ip, int port);
 
 int main(int argc, char **argv)
 {
-    int ports[3];
-    char *ips[3];
+    int ports[4];
+    char *ips[4];
     
     if(argc!=2)
     {
@@ -64,17 +64,60 @@ int main(int argc, char **argv)
     {
         getline(&line,&leng,config);
         line[strcspn(line,"\n")]=0; // this removes any trailing \n chars
-        if(i == 0)
+        if(i == D1)
         {
+
+            char holder3[16]="";
             ports[D1]= atoi(strchr(line, ':') +1);
             printf("Port is: %d\n",ports[D1]);
             holder= strtok(line, " ");
             holder= strtok(NULL, " ");
             holder= strtok(NULL, " ");
             holder2= strtok(holder, ":");
-            char holder3[]= holder2;
+            strcpy(holder3,holder2);
             ips[D1]= holder3;
             printf("IP is: %s\n", ips[D1]);
+        }
+        if(i ==D2)
+        {
+            printf("line 2: %s\n", line);
+            char holder4[16]="";
+            ports[D2]= atoi(strchr(line, ':') +1);
+            printf("Port is: %d\n",ports[D2]);
+            holder= strtok(line, " ");
+            holder= strtok(NULL, " ");
+            holder= strtok(NULL, " ");
+            holder2= strtok(holder, ":");
+            strcpy(holder4,holder2);
+            ips[D2]= holder4;
+            printf("IP is: %s\n", ips[D2]);
+        }
+        if(i==D3)
+        {
+            char holder5[16]="";
+            ports[D3]= atoi(strchr(line, ':') +1);
+            printf("Port is: %d\n",ports[D3]);
+            holder= strtok(line, " ");
+            holder= strtok(NULL, " ");
+            holder= strtok(NULL, " ");
+            holder2= strtok(holder, ":");
+            strcpy(holder5,holder2);
+            ips[D3]= holder5;
+            printf("IP is: %s\n", ips[D3]);
+        }
+        if(i == D4)
+        {
+            char holder6[16]="";
+            ports[D4]= atoi(strchr(line, ':') +1);
+            printf("Port is: %d\n",ports[D4]);
+            holder= strtok(line, " ");
+            holder= strtok(NULL, " ");
+            holder= strtok(NULL, " ");
+            holder2= strtok(holder, ":");
+            strcpy(holder6,holder2);
+            ips[D4]= holder6;
+            printf("IP is: %s\n", ips[D4]);
+
         }
     }
 
