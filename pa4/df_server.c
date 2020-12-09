@@ -19,9 +19,12 @@
 
 // above includes taken from previous provided code
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~FUNCTION DECLARATIONS~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~FUNCTION DECLARATIONS~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 int open_listenfd(int port);
 void * thread(void* vargp);
+void * make_usr_dir(char *usrname);
+bool auth();
+void df_server(int connfd);
 
 //main also taken from previous given code.
 int main(int argc, char **argv)
@@ -36,14 +39,12 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if (strcmp(argv[1], "/DFS1") && strcmp(argv[1], "/DFS2") && strcmp(argv[1], "/DFS3") && strcmp(argv[1], "/DFS4"))
+    if (strcmp(argv[1], "1") && strcmp(argv[1], "2") && strcmp(argv[1], "3") && strcmp(argv[1], "4"))
     {
-        printf("Invalid DFS - usage: ./dfs </DFS{1-4}> <port #>\n");
+        printf("Usage: ./dfs <1-4> <port #>\n");
         return 1;
     }
     portno = atoi(argv[2]);
-    strcpy(path, argv[1]);
-
     listenfd = open_listenfd(portno);
 
     while (1)
@@ -60,9 +61,33 @@ void *thread(void *vargp)
 {
 	int connfd = *((int *)vargp);
 	pthread_detach(pthread_self());
-	proxy(connfd);
+	df_server(connfd);
 	close(connfd);
 	return NULL;
+}
+
+void df_server(int connfd)
+{
+    while(true)
+    {
+        size_t n;
+        char buf[MAXLINE];
+    }
+    auth();
+    //stuff goes here
+}
+
+
+void *make_usr_dir(char * username)
+{
+    //stuff goes here
+}
+
+bool auth()
+{
+    printf("we make it to auth\n");
+    //stuff goes here
+    return true;
 }
 
 
