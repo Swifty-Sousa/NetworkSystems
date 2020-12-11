@@ -18,13 +18,15 @@
 #define LISTENQ 1024
 
 // above includes taken from previous provided code
-
+char path[4]; // /ds1
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~FUNCTION DECLARATIONS~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 int open_listenfd(int port);
 void * thread(void* vargp);
 void * make_usr_dir(char *usrname);
-bool auth();
+bool auth(char * buf, char * uname_buf);
 void df_server(int connfd);
+void serve(int connfd);
+void check_dir(char * uname);
 
 //main also taken from previous given code.
 int main(int argc, char **argv)
@@ -39,17 +41,12 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if (strcmp(argv[1], "1") && strcmp(argv[1], "2") && strcmp(argv[1], "3") && strcmp(argv[1], "4"))
-    {
-        printf("Usage: ./dfs <1-4> <port #>\n");
-        return 1;
-    }
     portno = atoi(argv[2]);
     listenfd = open_listenfd(portno);
+    strcpy(path, argv[1]);
 
     while (1)
     {
-        printf("Attempting to connect.\n");
         connfdp = malloc(sizeof(int));
         *connfdp = accept(listenfd, (struct sockaddr *)&clientaddr, &clientlen);
         pthread_create(&tid, NULL, thread, connfdp);
@@ -61,46 +58,179 @@ void *thread(void *vargp)
 {
 	int connfd = *((int *)vargp);
 	pthread_detach(pthread_self());
-	df_server(connfd);
+    serve(connfd);
 	close(connfd);
 	return NULL;
 }
 
-void df_server(int connfd)
+void serve(int connfd)
 {
+    char usr_name[BUF];
     while(true)
     {
-        size_t n;
         char buf[MAXLINE];
+        bzero(buf, MAXLINE);
+        size_t flag= read(connfd, buf, MAXLINE);
+        printf("message recived: %s\n", buf);
+        if(flag==0)
+        {
+            break;
+        }
+        //printf("command buffer is: %s");
+
+        if (!strncmp(buf, "auth", 4))
+        {
+            if(auth(buf,usr_name))
+            {
+                write(connfd, "authorized", 10);
+            }
+            else
+            {
+                write(connfd, "failed", 6);
+            }
+            
+        }
+        if(!strncmp(buf,"get", 3))
+        {
+            printf("we made it to get\n");
+            struct stat test;
+            int file_size;
+            char * filename= strchr(buf, ' ')+1 ;
+            int holder= strlen(filename) +strlen(path) +strlen(usr_name)+4;
+            char path_to_f[holder];
+            strcpy(path_to_f, ".");
+            strcat(path_to_f, path);
+            strcat(path_to_f, "/");
+            strcat(path_to_f, usr_name);
+            strcat(path_to_f, "/");
+            strcat(path_to_f, filename);
+            if(stat(path_to_f, &test)==0)
+            {
+                file_size= (int)test.st_size;
+                if(file_size==0)
+                {
+                    printf("file does not exist on server\n");
+                    write(connfd,"blk_size|", 9);
+                    continue;
+                }
+                char size_buf[32];
+                write(connfd, size_buf, sizeof(size_buf));
+            }
+            char blk[file_size];
+            bzero(blk, sizeof(blk));
+            FILE * blk_file =fopen(path_to_f, "rb");
+            fread(blk, file_size, 1, blk_file);
+            char traffic[12];
+            read(connfd,traffic, 12);
+            write(connfd, blk_file, sizeof(blk_file));
+
+        }
+
+
+
+        if(!strncmp(buf,"put",3))
+        {
+            check_dir(usr_name);
+            char * file_name= strchr(buf, ' ')+1;
+            *(file_name -1 )= '\0';
+            char *fsize= strchr(buf, ' ')+1;
+            int file_size= atoi(fsize);
+            int holder= strlen(path) + strlen(usr_name) +strlen(file_name) +5;
+            char dir[holder];
+            bzero(dir, sizeof(dir));
+            strcpy(dir, ".");
+            strcat(dir, path);
+            strcat(dir, "/");
+            strcat(dir, usr_name);
+            strcat(dir, "/");
+            strcat(dir, file_name);
+            FILE *file= fopen(dir, "wb");
+            char f_buf[file_size];
+            int size= read(connfd, f_buf, file_size);
+            fwrite(f_buf,1,size, file);
+            fclose(file);
+
+        }
+        if(!strncmp(buf, "ls",2))
+        {
+            check_dir(usr_name);
+            char buff[MAXLINE];
+            bzero(buff, MAXLINE);
+            int holder= strlen(path) +strlen(usr_name) +3;
+            char f_path[holder];
+            strcpy(f_path, ".");
+            strcat(f_path, path);
+            strcat(f_path, "/");
+            strcat(f_path, usr_name);
+            strcat(f_path, "/");
+            DIR *d=opendir(f_path);
+            while(true)
+            {
+                struct  dirent *dir =readdir(d);
+                if(dir==NULL)
+                {
+                    break;
+                }
+                if(strcmp(dir->d_name, ".") && strcmp(dir->d_name, ".."))
+                {
+                    strcat(buff, dir->d_name);
+                    strcat(buf, "|");
+                }
+                
+            }
+
+        }
     }
-    auth();
-    //stuff goes here
 }
 
-
-void *make_usr_dir(char * username)
+void check_dir(char * uname)
 {
-    //stuff goes here
+    DIR *dir;
+    int holder= strlen(path)+strlen(uname)+ 3;
+    char d_path[holder];
+    bzero(d_path, holder);
+    strcpy(d_path,path+1);
+    strcat(d_path, "/");
+    strcat(d_path, uname);
+    dir= opendir(d_path);
+    if(dir)
+    {
+        closedir(dir);
+    }
+    else
+    {
+        mkdir(d_path, 0777);
+    }
+    
 }
 
-bool auth()
+bool auth(char *buf, char *uname_buff)
 {
-    printf("we make it to auth\n");
-    //stuff goes here
-    return true;
+    printf("are we getting to auth\n");
+    char * line=NULL;
+    char *uname= strchr(buf, ' ')+1;
+    char *psswd= strchr(buf, '|')+1;
+    *(psswd -1)= '\0';
+    strncpy(uname_buff, uname, BUF);
+    FILE *config;
+    ssize_t bytes;
+    ssize_t len=0;
+    config= fopen("dfs.conf", "r");
+    while((bytes =getline(&line, &len, config))!= -1)
+    {
+        int holder= strcspn(line, "\n");
+        line[holder]=0;
+        char *c_psswd= strchr(line, ' ')+1;
+        *(c_psswd -1) ='\0';
+        if(!strcmp(uname, line) &&!strcmp(psswd,c_psswd))
+        {
+            printf("authentication successful\n");
+            return true;
+        }
+    }
+
+    return false;
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

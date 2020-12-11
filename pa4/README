@@ -1,0 +1,12 @@
+This is an Implementaiton of a dfs server and client
+
+
+the client is built with 
+>>gcc df_client.c -lcrypto -o client
+and ran with 
+>> ./client <config file name>
+
+the server is built with
+>> gcc df_server.c -pthrad -o server
+and ran with
+>> ./server
